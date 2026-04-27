@@ -171,7 +171,6 @@ Object.entries(SRC).forEach(([k, v]) => { const i = new Image(); i.src = v; IMG[
 document.getElementById('prev-rabbit').src = SRC.rabbit;
 document.getElementById('prev-deer').src = SRC.deer;
 
-// 💡 핵심 변경점: 단어 데이터를 객체 배열로 변경하여 '표준 발음' 및 '인식 오류' 다중 허용
 const STAGES = [
   { name:'어둠의 숲', vocab:[
     { text: '싫다', accept: ['싫다', '실타'] },
@@ -180,7 +179,7 @@ const STAGES = [
     { text: '볶다', accept: ['볶다', '복따'] },
     { text: '먹다', accept: ['먹다', '먹따'] },
     { text: '걸다', accept: ['걸다'] },
-    { text: '닿다', accept: ['닿다', '다타', '닫따', '닫아', '다아'] } // 스크린샷 반영
+    { text: '닿다', accept: ['닿다', '다타', '닫따', '닫아', '다아'] } 
   ]},
   { name:'침묵의 강', vocab:[
     { text: '넓다', accept: ['넓다', '널따'] },
@@ -210,8 +209,9 @@ const STAGES = [
   ]},
 ];
 
+// failCount 변수 추가 (단어별 실패 횟수 기록)
 let state = { 
-  selectedChar:'rabbit', stageIdx:0, vocabIdx:0, hp:5, maxHp:5, 
+  selectedChar:'rabbit', stageIdx:0, vocabIdx:0, failCount:0, hp:5, maxHp:5, 
   bossHP:0, bossMaxHP:0, isPaused: false,
   jumpY: 0, jumpVY: 0, isJumping: false,
   bossAttacks: [], bossSignal: 'none', bossSignalTimer: 0,
@@ -235,7 +235,8 @@ function startGame() {
 
 function loadStage() {
   const s = STAGES[state.stageIdx];
-  state.vocabIdx = 0; state.bossMaxHP = s.vocab.length; state.bossHP = s.vocab.length;
+  state.vocabIdx = 0; state.failCount = 0; // 스테이지 시작 시 초기화
+  state.bossMaxHP = s.vocab.length; state.bossHP = s.vocab.length;
   state.bossAttacks = []; state.bossSignal = 'none'; state.bossSignalTimer = Date.now() + 2000;
   $('boss-name').textContent = `${s.name}의 호랑이`;
   updateUI(); loadNextWord();
@@ -322,15 +323,16 @@ function renderLoop() {
     } else if (atk.x < -50) state.bossAttacks.splice(i, 1);
   }
 
-  drawChar(IMG[state.selectedChar], W * 0.2, groundY - state.jumpY, 110, false, now);
+  // 💡 수정됨: 캐릭터 크기를 140으로 확대
+  drawChar(IMG[state.selectedChar], W * 0.2, groundY - state.jumpY, 140, false, now);
 
   const bossX = W * 0.8, bossY = groundY;
   
   if (state.bossSignal !== 'none' && state.bossSignal !== 'wait') {
     ctx.save();
     ctx.globalCompositeOperation = 'screen'; 
-    const pulseRadius = 120 + Math.sin(now * 0.005) * 15;
-    const auraGrad = ctx.createRadialGradient(bossX, bossY - 60, 20, bossX, bossY - 60, pulseRadius);
+    const pulseRadius = 140 + Math.sin(now * 0.005) * 20; // 💡 아우라 반경도 함께 키움
+    const auraGrad = ctx.createRadialGradient(bossX, bossY - 80, 20, bossX, bossY - 80, pulseRadius); // 💡 중심점을 위로 올림 (-80)
     
     let coreColor, outerColor;
     if (state.bossSignal === 'green') {
@@ -342,13 +344,14 @@ function renderLoop() {
     }
     
     auraGrad.addColorStop(0, coreColor); auraGrad.addColorStop(1, outerColor);
-    ctx.fillStyle = auraGrad; ctx.beginPath(); ctx.arc(bossX, bossY - 60, pulseRadius, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = auraGrad; ctx.beginPath(); ctx.arc(bossX, bossY - 80, pulseRadius, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   
   ctx.save();
   if (state.bossHitEffect > 0) { ctx.translate((Math.random()-0.5)*15, 0); state.bossHitEffect--; }
-  drawChar(IMG.tiger, bossX, bossY, 150, true, now);
+  // 💡 수정됨: 보스 크기를 190으로 확대
+  drawChar(IMG.tiger, bossX, bossY, 190, true, now);
   ctx.restore();
 
   state.particles = state.particles.filter(p => p.life > 0);
@@ -377,7 +380,9 @@ function drawChar(img, cx, gy, size, flip, t) {
 function loadNextWord() {
   const s = STAGES[state.stageIdx];
   if (state.bossHP <= 0) return;
-  // 💡 화면에는 원본 단어(.text)를 보여줍니다.
+  
+  state.failCount = 0; // 💡 새로운 단어가 로드될 때 실패 횟수 초기화
+  
   $('vocab-word').textContent = s.vocab[state.vocabIdx].text;
   $('vocab-feedback').textContent = '신호를 보고 피하며 읽으세요!';
   $('vocab-feedback').style.color = '#fff';
@@ -401,10 +406,7 @@ function toggleListening() {
   rec.onresult = e => {
     state.listening = false; btn.classList.remove('listening'); btn.innerHTML = '🎤 공격!';
     
-    // 인식된 음성에서 공백 제거
     const heard = e.results[0][0].transcript.replace(/\s/g,'');
-    
-    // 💡 현재 단어의 허용 발음 배열을 가져와서 정답 확인
     const targetData = STAGES[state.stageIdx].vocab[state.vocabIdx];
     const isCorrect = targetData.accept.some(ans => heard === ans || heard.includes(ans));
     
@@ -423,7 +425,29 @@ function toggleListening() {
         setTimeout(loadNextWord, 800);
       }
     } else {
-      $('vocab-feedback').textContent = `❌ 다시! (${heard})`; $('vocab-feedback').style.color = '#ffaa00';
+      // 💡 3번 실패 시 자동 통과 로직 추가
+      state.failCount++;
+      
+      if (state.failCount >= 3) {
+        state.vocabIdx++;
+        state.bossHP--; 
+        updateUI(); 
+        
+        AudioSys.play('playerAtk'); 
+        spawnAttack();
+        $('vocab-feedback').textContent = '✨ 자동 통과! (어려운 발음)'; 
+        $('vocab-feedback').style.color = '#00ffff'; // 통과 메시지는 눈에 띄는 색으로
+        
+        if (state.bossHP <= 0) {
+          setTimeout(showCheckpoint, 800); 
+        } else {
+          setTimeout(loadNextWord, 800);
+        }
+      } else {
+        // 실패 시 남은 기회(카운트) 표시
+        $('vocab-feedback').textContent = `❌ 다시! (${heard}) [${state.failCount}/3]`; 
+        $('vocab-feedback').style.color = '#ffaa00';
+      }
     }
   };
   rec.onerror = () => { state.listening = false; btn.classList.remove('listening'); btn.innerHTML = '🎤 공격!'; };
