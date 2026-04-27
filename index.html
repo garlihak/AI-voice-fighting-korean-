@@ -117,6 +117,52 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
 </div>
 
 <script>
+// --- 웹 오디오 API를 활용한 효과음 시스템 ---
+const AudioSys = {
+  ctx: null,
+  init() { 
+    if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+    if(this.ctx.state === 'suspended') this.ctx.resume(); 
+  },
+  play(type) {
+    if(!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    
+    if (type === 'playerAtk') { // 뾰로롱 (플레이어 공격)
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, t);
+      osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+      gain.gain.setValueAtTime(0.1, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+      osc.start(t); osc.stop(t + 0.15);
+    } else if (type === 'bossAtk') { // 슈욱 (호랑이 불덩이 발사)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(250, t);
+      osc.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.linearRampToValueAtTime(0.01, t + 0.3);
+      osc.start(t); osc.stop(t + 0.3);
+    } else if (type === 'hit') { // 찌직! (플레이어 피격)
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, t);
+      osc.frequency.linearRampToValueAtTime(50, t + 0.2);
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
+      osc.start(t); osc.stop(t + 0.2);
+    } else if (type === 'bossHit') { // 퍽! (보스 피격)
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(400, t);
+      osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.linearRampToValueAtTime(0.01, t + 0.15);
+      osc.start(t); osc.stop(t + 0.15);
+    }
+  }
+};
+
 const GITHUB_URL = "https://raw.githubusercontent.com/garlihak/garlihak/main/";
 const SRC = { rabbit: GITHUB_URL + "rabbit.png", deer: GITHUB_URL + "deer.png", tiger: GITHUB_URL + "tiger.png" };
 const IMG = {};
@@ -143,12 +189,14 @@ let state = {
 const $ = id => document.getElementById(id);
 
 function selectChar(btn) { 
+  AudioSys.init(); // 오디오 초기화용
   document.querySelectorAll('.char-btn').forEach(b=>b.classList.remove('selected')); 
   btn.classList.add('selected'); 
   state.selectedChar=btn.dataset.char; 
 }
 
 function startGame() {
+  AudioSys.init();
   state.stageIdx = 0; state.hp = 5; state.isPaused = false;
   loadStage(); showScreen('screen-game'); renderLoop();
 }
@@ -181,7 +229,10 @@ function togglePause(paused) {
   }
 }
 
-function jump() { if (!state.isPaused && state.jumpY === 0) { state.jumpVY = 18; state.isJumping = true; } }
+function jump() { 
+  AudioSys.init();
+  if (!state.isPaused && state.jumpY === 0) { state.jumpVY = 18; state.isJumping = true; } 
+}
 
 const canvas = $('game-canvas'), ctx = canvas.getContext('2d');
 function initCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 150; }
@@ -212,16 +263,24 @@ function renderLoop() {
     if (state.jumpY <= 0) { state.jumpY = 0; state.isJumping = false; }
   }
 
-  // 2. 보스 공격 신호 로직
+  // 2. 보스 공격 신호 로직 (HP에 반비례하여 동적 속도 증가)
   if (state.hp > 0 && state.bossHP > 0) {
     const diff = now - state.bossSignalTimer;
+    
+    // speedMod: 체력이 100%일 때 1.0 (기본 속도), 체력이 0에 가까울수록 0.4 (2.5배 빠름)
+    const speedMod = 0.4 + 0.6 * (state.bossHP / state.bossMaxHP);
+    const phaseTime = 1000 * speedMod;
+
     if (state.bossSignal === 'none' && diff > 0) state.bossSignal = 'green';
-    else if (state.bossSignal === 'green' && diff > 1000) state.bossSignal = 'yellow';
-    else if (state.bossSignal === 'yellow' && diff > 2000) state.bossSignal = 'red';
-    else if (state.bossSignal === 'red' && diff > 3000) state.bossSignal = 'wait';
-    else if (state.bossSignal === 'wait' && diff > 4000) {
+    else if (state.bossSignal === 'green' && diff > phaseTime) state.bossSignal = 'yellow';
+    else if (state.bossSignal === 'yellow' && diff > phaseTime * 2) state.bossSignal = 'red';
+    else if (state.bossSignal === 'red' && diff > phaseTime * 3) state.bossSignal = 'wait';
+    else if (state.bossSignal === 'wait' && diff > phaseTime * 4) {
         state.bossAttacks.push({ x: W * 0.8, y: groundY - 40, vx: -(W * 0.015) });
-        state.bossSignal = 'none'; state.bossSignalTimer = now + 1500;
+        AudioSys.play('bossAtk'); // 호랑이 불덩이 효과음
+        state.bossSignal = 'none'; 
+        // 다음 공격까지의 쿨타임도 체력에 비례하여 짧아짐
+        state.bossSignalTimer = now + (1500 * speedMod);
     }
   }
 
@@ -231,6 +290,7 @@ function renderLoop() {
     ctx.font = '40px serif'; ctx.fillText('🔥', atk.x, atk.y);
     if (atk.x > W*0.2-30 && atk.x < W*0.2+30 && (groundY - state.jumpY) > atk.y - 20) {
       state.hp--; updateUI(); state.bossAttacks.splice(i, 1);
+      AudioSys.play('hit'); // 플레이어 피격 효과음
       $('screen-game').classList.add('shake'); setTimeout(() => $('screen-game').classList.remove('shake'), 400);
       if (state.hp <= 0) { alert("패배했습니다!"); location.reload(); }
     } else if (atk.x < -50) state.bossAttacks.splice(i, 1);
@@ -241,15 +301,10 @@ function renderLoop() {
 
   const bossX = W * 0.8, bossY = groundY;
   
-  // 아우라 연출 개선 (Radial Gradient + Screen Blending)
   if (state.bossSignal !== 'none' && state.bossSignal !== 'wait') {
     ctx.save();
-    ctx.globalCompositeOperation = 'screen'; // 빛나는 느낌을 주는 블렌딩 모드
-    
-    // 숨쉬는 듯한 크기 변화 효과
+    ctx.globalCompositeOperation = 'screen'; 
     const pulseRadius = 120 + Math.sin(now * 0.005) * 15;
-    
-    // 방사형 그라데이션 생성 (중심에서 바깥으로 퍼짐)
     const auraGrad = ctx.createRadialGradient(bossX, bossY - 60, 20, bossX, bossY - 60, pulseRadius);
     
     let coreColor, outerColor;
@@ -261,13 +316,8 @@ function renderLoop() {
         coreColor = 'rgba(255, 50, 50, 0.8)'; outerColor = 'rgba(255, 50, 50, 0)';
     }
     
-    auraGrad.addColorStop(0, coreColor);
-    auraGrad.addColorStop(1, outerColor);
-    
-    ctx.fillStyle = auraGrad;
-    ctx.beginPath();
-    ctx.arc(bossX, bossY - 60, pulseRadius, 0, Math.PI * 2);
-    ctx.fill();
+    auraGrad.addColorStop(0, coreColor); auraGrad.addColorStop(1, outerColor);
+    ctx.fillStyle = auraGrad; ctx.beginPath(); ctx.arc(bossX, bossY - 60, pulseRadius, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   
@@ -280,10 +330,10 @@ function renderLoop() {
   state.particles = state.particles.filter(p => p.life > 0);
   state.particles.forEach(p => {
     p.x += p.vx; p.y += p.vy;
-    // 호랑이 근처에 도달하면 히트 효과 (HP 깎는 로직 제거, 연출만)
     if (p.x > W * 0.75 && !p.hit) {
         p.hit = true; p.life = 0;
-        state.bossHitEffect = 15; // 타격감 흔들림 유지
+        state.bossHitEffect = 15; 
+        AudioSys.play('bossHit'); // 보스 피격 효과음
     }
     ctx.font = p.size + 'px serif'; ctx.fillText(p.emoji, p.x, p.y);
   });
@@ -309,6 +359,7 @@ function loadNextWord() {
 }
 
 function toggleListening() {
+  AudioSys.init();
   const btn = $('mic-btn');
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
@@ -327,18 +378,17 @@ function toggleListening() {
     const heard = e.results[0][0].transcript.replace(/\s/g,'');
     const target = STAGES[state.stageIdx].vocab[state.vocabIdx].replace(/\s/g,'');
     
-    // 정답 처리 로직
     if (heard.includes(target) || target.includes(heard)) {
       state.vocabIdx++;
-      state.bossHP--; // 대미지는 여기서 딱 한 번만 들어갑니다.
-      updateUI(); // 깎인 HP를 화면에 즉시 반영
+      state.bossHP--; 
+      updateUI(); 
       
+      AudioSys.play('playerAtk'); // 내 공격 성공 효과음
       spawnAttack();
       $('vocab-feedback').textContent = '⚡ 명중!'; $('vocab-feedback').style.color = '#00ffff';
       
-      // 보스의 HP가 0이 되면 스테이지 클리어 로직으로
       if (state.bossHP <= 0) {
-        setTimeout(showCheckpoint, 800); // 투사체가 날아가는 시간을 고려해 0.8초 딜레이
+        setTimeout(showCheckpoint, 800); 
       } else {
         setTimeout(loadNextWord, 800);
       }
@@ -350,12 +400,14 @@ function toggleListening() {
   rec.start();
 }
 
+// 투사체 이모지 동적 변경 (토끼 = 번개⚡, 사슴 = 바람💨)
 function spawnAttack() {
+  const attackEmoji = state.selectedChar === 'rabbit' ? '⚡' : '💨';
   for(let i=0; i<5; i++) {
     state.particles.push({
       x: canvas.width * 0.2, y: canvas.height * 0.6,
       vx: 12 + Math.random()*5, vy: (Math.random()-0.5)*6,
-      emoji: '⭐', size: 25, life: 100, hit: false
+      emoji: attackEmoji, size: 25, life: 100, hit: false
     });
   }
 }
