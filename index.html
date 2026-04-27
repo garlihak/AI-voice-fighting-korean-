@@ -201,6 +201,8 @@ function renderLoop() {
   if (state.isPaused) { state.animFrame = requestAnimationFrame(renderLoop); return; }
   
   const W = canvas.width, H = canvas.height, groundY = H * 0.75;
+  const now = Date.now();
+  
   ctx.clearRect(0, 0, W, H);
   drawBackground(W, H, state.stageIdx);
 
@@ -210,8 +212,7 @@ function renderLoop() {
     if (state.jumpY <= 0) { state.jumpY = 0; state.isJumping = false; }
   }
 
-  // 2. 보스 공격 신호 로직 (초록-노랑-빨강-대기-발사)
-  const now = Date.now();
+  // 2. 보스 공격 신호 로직
   if (state.hp > 0 && state.bossHP > 0) {
     const diff = now - state.bossSignalTimer;
     if (state.bossSignal === 'none' && diff > 0) state.bossSignal = 'green';
@@ -235,15 +236,39 @@ function renderLoop() {
     } else if (atk.x < -50) state.bossAttacks.splice(i, 1);
   }
 
-  // 4. 캐릭터 & 보스 아우라 그리기
+  // 4. 캐릭터 & 보스 은은한 아우라 그리기
   drawChar(IMG[state.selectedChar], W * 0.2, groundY - state.jumpY, 110, false, now);
 
   const bossX = W * 0.8, bossY = groundY;
+  
+  // 아우라 연출 개선 (Radial Gradient + Screen Blending)
   if (state.bossSignal !== 'none' && state.bossSignal !== 'wait') {
-    const auraColor = state.bossSignal === 'green' ? 'rgba(0,255,0,0.5)' : state.bossSignal === 'yellow' ? 'rgba(255,255,0,0.5)' : 'rgba(255,0,0,0.6)';
-    ctx.shadowBlur = 30; ctx.shadowColor = auraColor;
-    ctx.fillStyle = auraColor; ctx.beginPath(); ctx.arc(bossX, bossY - 80, 70, 0, Math.PI*2); ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen'; // 빛나는 느낌을 주는 블렌딩 모드
+    
+    // 숨쉬는 듯한 크기 변화 효과
+    const pulseRadius = 120 + Math.sin(now * 0.005) * 15;
+    
+    // 방사형 그라데이션 생성 (중심에서 바깥으로 퍼짐)
+    const auraGrad = ctx.createRadialGradient(bossX, bossY - 60, 20, bossX, bossY - 60, pulseRadius);
+    
+    let coreColor, outerColor;
+    if (state.bossSignal === 'green') {
+        coreColor = 'rgba(50, 255, 100, 0.6)'; outerColor = 'rgba(50, 255, 100, 0)';
+    } else if (state.bossSignal === 'yellow') {
+        coreColor = 'rgba(255, 200, 50, 0.6)'; outerColor = 'rgba(255, 200, 50, 0)';
+    } else {
+        coreColor = 'rgba(255, 50, 50, 0.8)'; outerColor = 'rgba(255, 50, 50, 0)';
+    }
+    
+    auraGrad.addColorStop(0, coreColor);
+    auraGrad.addColorStop(1, outerColor);
+    
+    ctx.fillStyle = auraGrad;
+    ctx.beginPath();
+    ctx.arc(bossX, bossY - 60, pulseRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
   
   ctx.save();
@@ -255,11 +280,10 @@ function renderLoop() {
   state.particles = state.particles.filter(p => p.life > 0);
   state.particles.forEach(p => {
     p.x += p.vx; p.y += p.vy;
-    // 호랑이 근처에 도달하면 히트 효과 발생
+    // 호랑이 근처에 도달하면 히트 효과 (HP 깎는 로직 제거, 연출만)
     if (p.x > W * 0.75 && !p.hit) {
         p.hit = true; p.life = 0;
-        state.bossHP--; state.bossHitEffect = 10; updateUI();
-        if (state.bossHP <= 0) setTimeout(showCheckpoint, 500);
+        state.bossHitEffect = 15; // 타격감 흔들림 유지
     }
     ctx.font = p.size + 'px serif'; ctx.fillText(p.emoji, p.x, p.y);
   });
@@ -302,10 +326,22 @@ function toggleListening() {
     state.listening = false; btn.classList.remove('listening'); btn.innerHTML = '🎤 공격!';
     const heard = e.results[0][0].transcript.replace(/\s/g,'');
     const target = STAGES[state.stageIdx].vocab[state.vocabIdx].replace(/\s/g,'');
+    
+    // 정답 처리 로직
     if (heard.includes(target) || target.includes(heard)) {
-      state.vocabIdx++; spawnAttack();
+      state.vocabIdx++;
+      state.bossHP--; // 대미지는 여기서 딱 한 번만 들어갑니다.
+      updateUI(); // 깎인 HP를 화면에 즉시 반영
+      
+      spawnAttack();
       $('vocab-feedback').textContent = '⚡ 명중!'; $('vocab-feedback').style.color = '#00ffff';
-      setTimeout(loadNextWord, 800);
+      
+      // 보스의 HP가 0이 되면 스테이지 클리어 로직으로
+      if (state.bossHP <= 0) {
+        setTimeout(showCheckpoint, 800); // 투사체가 날아가는 시간을 고려해 0.8초 딜레이
+      } else {
+        setTimeout(loadNextWord, 800);
+      }
     } else {
       $('vocab-feedback').textContent = `❌ 다시! (${heard})`; $('vocab-feedback').style.color = '#ffaa00';
     }
