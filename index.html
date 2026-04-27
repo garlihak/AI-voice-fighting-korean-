@@ -20,21 +20,21 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
 .char-name { font-size:18px; color:#fff; margin-top:8px; }
 .start-btn { background:linear-gradient(135deg,#6a11cb,#2575fc); border:none; border-radius:50px; padding:18px 56px; font-family:'Jua',sans-serif; font-size:26px; color:#fff; cursor:pointer; box-shadow:0 6px 30px rgba(106,17,203,0.5); }
 
-#screen-game { background:#2c3e50; padding:0; justify-content:flex-start; }
-.boss-hud { width:90%; margin-top:15px; position:relative; }
+#screen-game { background:#000; padding:0; justify-content:flex-start; position: relative; }
+.boss-hud { width:90%; margin-top:15px; position:absolute; top: 0; z-index: 20; }
 .boss-name { color:#ff4444; font-size:18px; margin-bottom:5px; text-align:center; text-shadow: 0 0 10px #000; }
 .boss-hp-bg { width:100%; height:25px; background:rgba(0,0,0,0.5); border:2px solid #fff; border-radius:15px; overflow:hidden; }
 .boss-hp-fill { height:100%; background:linear-gradient(90deg, #ff0000, #ff7b7b); width:100%; transition: width 0.3s ease-out; }
 
-.player-hud { width:100%; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; z-index:10; }
+.player-hud { width:100%; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; position:absolute; top: 45px; z-index:20; }
 .hp-display { display:flex; gap:2px; flex-wrap:wrap; max-width: 60%; }
 .hp-heart { font-size:22px; transition:all 0.3s; }
 .hp-heart.empty { filter:grayscale(1) opacity(0.3); }
+.stage-info { color:#fff; font-size:18px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
-#game-canvas { width:100%; flex:1; display:block; }
+#game-canvas { width:100%; flex:1; display:block; z-index: 10; }
 
-/* 하단 조작부 레이아웃 변경 */
-.bottom-area { width:100%; padding:15px; background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); display:flex; flex-direction:column; align-items:center; gap:10px; border-top:2px solid rgba(255,255,255,0.1); }
+.bottom-area { width:100%; padding:15px; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); display:flex; flex-direction:column; align-items:center; gap:10px; border-top:2px solid rgba(255,255,255,0.1); z-index: 20; }
 .vocab-word { font-size:42px; color:#fff; text-shadow:0 0 15px rgba(255,255,255,0.5); min-height:50px; }
 .vocab-feedback { font-size:16px; min-height:20px; font-weight:bold; }
 
@@ -44,7 +44,7 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
 .mic-btn:active, .jump-btn:active { transform:scale(0.95); }
 
 .mic-btn { width:45%; background:linear-gradient(135deg,#2575fc,#6a11cb); }
-.mic-btn.listening { background:linear-gradient(135deg,#ff0080,#ff8c00); animation: pulse 1.2s infinite; }
+.mic-btn.listening { background:linear-gradient(135deg,#ff0080,#ff8c00); animation: pulse 1.2s infinite; border-color: #ffeb3b; }
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
 .jump-btn { width:45%; background:linear-gradient(135deg,#00b09b,#96c93d); }
@@ -63,7 +63,7 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
 
 <div id="screen-start" class="screen active">
   <div class="title-main">⚔️ 점프 & 보이스 배틀</div>
-  <div class="title-sub">공격을 피하며 단어를 읽어 호랑이를 물리치세요!</div>
+  <div class="title-sub">공격을 피하며 단어를 읽어 악당을 물리치세요!</div>
   <div class="char-select">
     <div class="char-btn selected" data-char="rabbit" onclick="selectChar(this)">
       <img id="prev-rabbit" alt="토끼">
@@ -84,8 +84,9 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
   </div>
   <div class="player-hud">
     <div class="hp-display" id="hp-display"></div>
-    <div style="color:#fff; font-size:18px;" id="stage-info">Stage 1/4</div>
+    <div class="stage-info" id="stage-info">Stage 1/4</div>
   </div>
+  
   <canvas id="game-canvas"></canvas>
   
   <div class="bottom-area">
@@ -93,7 +94,7 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
     <div class="vocab-feedback" id="vocab-feedback">마이크를 누르고 읽어보세요!</div>
     
     <div class="controls">
-      <button class="mic-btn" id="mic-btn" onclick="startListening()">🎤 공격!</button>
+      <button class="mic-btn" id="mic-btn" onclick="toggleListening()">🎤 공격!</button>
       <button class="jump-btn" id="jump-btn" onclick="jump()">⬆️ 점프!</button>
     </div>
   </div>
@@ -124,13 +125,10 @@ const STAGES = [
 ];
 
 let state = { 
-  selectedChar:'rabbit', stageIdx:0, vocabIdx:0, hp:5, maxHp:5, // HP 5개로 수정
+  selectedChar:'rabbit', stageIdx:0, vocabIdx:0, hp:5, maxHp:5, 
   bossHP:0, bossMaxHP:0,
   
-  // 점프 관련 물리 변수
   jumpY: 0, jumpVY: 0, isJumping: false,
-  
-  // 보스 공격 변수
   bossAttacks: [], lastAttackTime: 0, attackInterval: 2500,
   
   isAttacking: false, bossHitEffect: 0,
@@ -158,8 +156,8 @@ function loadStage() {
   state.vocabIdx = 0;
   state.bossMaxHP = s.vocab.length;
   state.bossHP = s.vocab.length;
-  state.bossAttacks = []; // 스테이지 시작시 공격 초기화
-  state.lastAttackTime = Date.now() + 2000; // 2초 뒤 첫 공격
+  state.bossAttacks = []; 
+  state.lastAttackTime = Date.now() + 2000; 
   $('boss-name').textContent = s.bossName;
   $('stage-info').textContent = `Stage ${state.stageIdx+1}/${STAGES.length}`;
   updateUI();
@@ -180,75 +178,96 @@ function updateUI() {
 }
 
 function jump() {
-  // 바닥에 있을 때만 점프 가능
   if (state.jumpY === 0) {
-    state.jumpVY = 18; // 점프력 (높게 설정)
+    state.jumpVY = 18; 
     state.isJumping = true;
   }
 }
 
 const canvas = $('game-canvas'), ctx = canvas.getContext('2d');
-function initCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 340; }
+function initCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 150; } // 캔버스 높이 조절
 window.addEventListener('resize', initCanvas);
 initCanvas();
 
-function renderLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const W = canvas.width, H = canvas.height;
-  const groundY = H * 0.8;
+// 스테이지별 배경 그리기 함수
+function drawBackground(W, H, stageIdx) {
+  let skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+  let groundColor = '#333';
+  
+  if (stageIdx === 0) { // 어둠의 숲
+    skyGrad.addColorStop(0, '#0a192f'); skyGrad.addColorStop(1, '#1e3c35');
+    groundColor = '#132a1e';
+  } else if (stageIdx === 1) { // 침묵의 강
+    skyGrad.addColorStop(0, '#0f2027'); skyGrad.addColorStop(1, '#203a43');
+    groundColor = '#2c5364';
+  } else if (stageIdx === 2) { // 안개 산맥
+    skyGrad.addColorStop(0, '#2b3240'); skyGrad.addColorStop(1, '#4f5d73');
+    groundColor = '#3a4454';
+  } else { // 마지막 성
+    skyGrad.addColorStop(0, '#1a0b1c'); skyGrad.addColorStop(1, '#4a154b');
+    groundColor = '#321029';
+  }
+  
+  // 하늘
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+  
+  // 무작위 별/반딧불이 
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  for(let i=0; i<20; i++) {
+    let bx = (Math.sin(i*7.1 + Date.now()*0.0005) * W) % W;
+    if(bx < 0) bx += W;
+    let by = (Math.cos(i*3.3) * H*0.6);
+    ctx.beginPath();
+    ctx.arc(bx, Math.abs(by), i%3, 0, Math.PI*2);
+    ctx.fill();
+  }
 
-  // 1. 플레이어 물리(점프) 계산
+  // 땅
+  ctx.fillStyle = groundColor;
+  ctx.fillRect(0, H * 0.75, W, H * 0.25);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(0, H * 0.75, W, 8); // 땅 경계선
+}
+
+function renderLoop() {
+  const W = canvas.width, H = canvas.height;
+  const groundY = H * 0.75;
+  
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(W, H, state.stageIdx);
+
+  // 플레이어 물리 계산
   if (state.isJumping || state.jumpY > 0) {
     state.jumpY += state.jumpVY;
-    state.jumpVY -= 1.0; // 중력
-    
-    // 바닥에 착지
+    state.jumpVY -= 1.0; 
     if (state.jumpY <= 0) {
-      state.jumpY = 0;
-      state.jumpVY = 0;
-      state.isJumping = false;
+      state.jumpY = 0; state.jumpVY = 0; state.isJumping = false;
     }
   }
 
-  // 2. 보스 공격 생성 로직 (게임오버나 클리어가 아닐 때만)
+  // 보스 공격 로직
   if (state.hp > 0 && state.bossHP > 0 && Date.now() - state.lastAttackTime > state.attackInterval) {
     state.bossAttacks.push({
-      x: W * 0.8, // 호랑이 위치에서 출발
-      y: groundY - 40, // 바닥에서 살짝 뜬 위치
-      vx: -(W * 0.015), // 화면 크기에 비례한 속도
-      size: 40
+      x: W * 0.8, y: groundY - 40, vx: -(W * 0.015), size: 40
     });
-    // 다음 공격 쿨타임 (랜덤성 부여: 1.5초 ~ 3초)
     state.attackInterval = 1500 + Math.random() * 1500;
     state.lastAttackTime = Date.now();
   }
 
-  // 3. 보스 투사체 이동 및 충돌 판정
   for (let i = state.bossAttacks.length - 1; i >= 0; i--) {
     let atk = state.bossAttacks[i];
     atk.x += atk.vx;
-    
-    // 화면 밖으로 나가면 삭제
-    if (atk.x < -50) {
-      state.bossAttacks.splice(i, 1);
-      continue;
-    }
+    if (atk.x < -50) { state.bossAttacks.splice(i, 1); continue; }
 
-    // 그리기
-    ctx.font = '40px serif';
-    ctx.fillText('🔥', atk.x, atk.y);
+    ctx.font = '40px serif'; ctx.fillText('🔥', atk.x, atk.y);
 
-    // 충돌 판정 (플레이어 위치: X = W*0.2)
     let playerX = W * 0.2;
-    // 투사체가 플레이어의 X축 범위 안에 있고
     if (atk.x > playerX - 40 && atk.x < playerX + 40) {
-      // 플레이어가 점프를 안 했거나, 충분히 높이 뛰지 못했다면 피격 (투사체 Y: groundY-40)
-      let playerBottomY = groundY - state.jumpY; // 플레이어 발끝
+      let playerBottomY = groundY - state.jumpY; 
       if (playerBottomY > atk.y - 20) { 
-        // 충돌!
-        state.hp--;
-        updateUI();
-        state.bossAttacks.splice(i, 1); // 투사체 소멸
+        state.hp--; updateUI();
+        state.bossAttacks.splice(i, 1); 
         $('screen-game').classList.add('shake');
         setTimeout(() => $('screen-game').classList.remove('shake'), 400);
         $('vocab-feedback').textContent = '🔥 공격에 맞았습니다!';
@@ -256,20 +275,15 @@ function renderLoop() {
         
         if (state.hp <= 0) {
           if(state.recognition) { try{state.recognition.stop();}catch(e){} }
-          setTimeout(() => {
-            alert("호랑이의 공격에 쓰러졌습니다... 다시 도전하세요!");
-            location.reload();
-          }, 500);
+          setTimeout(() => { alert("호랑이의 공격에 쓰러졌습니다... 다시 도전하세요!"); location.reload(); }, 500);
         }
       }
     }
   }
 
-  // 4. 캐릭터 그리기
-  // 주인공 (jumpY 적용)
+  // 캐릭터 그리기
   drawChar(IMG[state.selectedChar], W * 0.2, groundY - state.jumpY, 120, false, Date.now());
 
-  // 호랑이
   ctx.save();
   if (state.bossHitEffect > 0) {
     ctx.translate((Math.random()-0.5)*15, (Math.random()-0.5)*15); 
@@ -278,11 +292,10 @@ function renderLoop() {
   drawChar(IMG.tiger, W * 0.8, groundY, 160, true, Date.now());
   ctx.restore();
 
-  // 5. 내 공격 투사체(별) 처리
+  // 내 공격 이펙트
   state.particles = state.particles.filter(p => p.life > 0);
   state.particles.forEach(p => {
-    ctx.font = p.size + 'px serif';
-    ctx.fillText(p.emoji, p.x, p.y);
+    ctx.font = p.size + 'px serif'; ctx.fillText(p.emoji, p.x, p.y);
     p.x += p.vx; p.y += p.vy; p.life--;
   });
 
@@ -304,30 +317,76 @@ function loadNextWord() {
   $('vocab-word').textContent = s.vocab[state.vocabIdx];
   $('vocab-feedback').textContent = '공격을 피하며 읽어보세요!';
   $('vocab-feedback').style.color = '#fff';
-  const btn = $('mic-btn'); btn.innerHTML = '🎤 공격!'; btn.classList.remove('listening');
 }
 
-function startListening() {
-  if(state.listening) return;
+// ---------------------------------------------
+// 음성 인식 On/Off 토글 기능으로 완전히 개편
+// ---------------------------------------------
+function toggleListening() {
+  const btn = $('mic-btn');
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ alert('음성인식이 지원되지 않는 브라우저입니다.'); return; }
+  if (!SR) { alert('음성인식이 지원되지 않는 브라우저입니다.'); return; }
+
+  // 1) 이미 듣고 있는 상태라면 -> 강제 취소
+  if (state.listening) {
+    if (state.recognition) {
+      try { state.recognition.stop(); } catch(e) {}
+    }
+    state.listening = false;
+    btn.classList.remove('listening');
+    btn.innerHTML = '🎤 공격!';
+    $('vocab-feedback').textContent = '음성 인식을 취소했습니다.';
+    $('vocab-feedback').style.color = '#fff';
+    return;
+  }
+
+  // 2) 듣고 있지 않은 상태라면 -> 새로 시작
+  const rec = new SR(); 
+  rec.lang = 'ko-KR';
+  rec.interimResults = false; // 중간 결과 무시 (정확도 상승)
   
-  const rec = new SR(); rec.lang = 'ko-KR';
+  state.recognition = rec;
   state.listening = true; 
-  $('mic-btn').classList.add('listening');
-  $('mic-btn').innerHTML = '👂 듣는중..';
+  
+  btn.classList.add('listening');
+  btn.innerHTML = '👂 듣는중..(취소)';
+  $('vocab-feedback').textContent = '마이크에 대고 단어를 말하세요!';
   
   rec.onresult = e => {
+    state.listening = false;
+    btn.classList.remove('listening');
+    btn.innerHTML = '🎤 공격!';
+    
     const heard = e.results[0][0].transcript.replace(/\s/g,'');
     const target = STAGES[state.stageIdx].vocab[state.vocabIdx].replace(/\s/g,'');
     handleBattle(heard.includes(target) || target.includes(heard), heard);
   };
-  rec.onerror = () => { state.listening = false; handleBattle(false, '인식 실패'); };
+  
+  rec.onerror = e => { 
+    state.listening = false; 
+    btn.classList.remove('listening');
+    btn.innerHTML = '🎤 공격!';
+    
+    // 사용자가 강제로 취소한 경우 에러로 처리하지 않음
+    if(e.error === 'aborted') return; 
+    
+    handleBattle(false, '인식 실패'); 
+  };
+
+  // 소리 입력이 없어 자동으로 끝났을 때의 처리
+  rec.onend = () => {
+    if (state.listening) {
+        state.listening = false;
+        btn.classList.remove('listening');
+        btn.innerHTML = '🎤 공격!';
+        $('vocab-feedback').textContent = '입력이 감지되지 않았습니다. 다시 눌러주세요!';
+    }
+  };
+
   rec.start();
 }
 
 function handleBattle(correct, heard) {
-  state.listening = false;
   if(correct) {
     state.bossHP--;
     state.vocabIdx++;
@@ -338,13 +397,8 @@ function handleBattle(correct, heard) {
     updateUI();
     setTimeout(loadNextWord, 800);
   } else {
-    // 음성 오답 시에는 HP가 깎이지 않고 다시 시도하게만 함 (호랑이 공격에만 맞도록 분리)
     $('vocab-feedback').textContent = `❌ 다시! (들린 말: ${heard})`;
     $('vocab-feedback').style.color = '#ffaa00';
-    setTimeout(() => { 
-        $('mic-btn').innerHTML = '🎤 공격!';
-        $('mic-btn').classList.remove('listening');
-    }, 800);
   }
 }
 
@@ -359,7 +413,7 @@ function spawnAttackParticles() {
 }
 
 function showCheckpoint() {
-  state.bossAttacks = []; // 클리어 시 날아오던 공격 삭제
+  state.bossAttacks = []; 
   $('checkpoint-popup').classList.add('show');
 }
 
