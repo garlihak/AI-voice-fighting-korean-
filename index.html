@@ -117,7 +117,7 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
 </div>
 
 <script>
-// --- 웹 오디오 API를 활용한 효과음 시스템 ---
+// --- 효과음 시스템 ---
 const AudioSys = {
   ctx: null,
   init() { 
@@ -131,28 +131,28 @@ const AudioSys = {
     const gain = this.ctx.createGain();
     osc.connect(gain); gain.connect(this.ctx.destination);
     
-    if (type === 'playerAtk') { // 뾰로롱 (플레이어 공격)
+    if (type === 'playerAtk') { 
       osc.type = 'square';
       osc.frequency.setValueAtTime(800, t);
       osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
       gain.gain.setValueAtTime(0.1, t);
       gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
       osc.start(t); osc.stop(t + 0.15);
-    } else if (type === 'bossAtk') { // 슈욱 (호랑이 불덩이 발사)
+    } else if (type === 'bossAtk') { 
       osc.type = 'sine';
       osc.frequency.setValueAtTime(250, t);
       osc.frequency.exponentialRampToValueAtTime(40, t + 0.3);
       gain.gain.setValueAtTime(0.3, t);
       gain.gain.linearRampToValueAtTime(0.01, t + 0.3);
       osc.start(t); osc.stop(t + 0.3);
-    } else if (type === 'hit') { // 찌직! (플레이어 피격)
+    } else if (type === 'hit') { 
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(150, t);
       osc.frequency.linearRampToValueAtTime(50, t + 0.2);
       gain.gain.setValueAtTime(0.2, t);
       gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
       osc.start(t); osc.stop(t + 0.2);
-    } else if (type === 'bossHit') { // 퍽! (보스 피격)
+    } else if (type === 'bossHit') { 
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(400, t);
       osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
@@ -171,11 +171,43 @@ Object.entries(SRC).forEach(([k, v]) => { const i = new Image(); i.src = v; IMG[
 document.getElementById('prev-rabbit').src = SRC.rabbit;
 document.getElementById('prev-deer').src = SRC.deer;
 
+// 💡 핵심 변경점: 단어 데이터를 객체 배열로 변경하여 '표준 발음' 및 '인식 오류' 다중 허용
 const STAGES = [
-  { name:'어둠의 숲', vocab:['싫다','많다','달다','볶다','먹다','걸다','닿다'] },
-  { name:'침묵의 강', vocab:['넓다','맑다','걷다','앉다','잊다','좋다','잊다'] },
-  { name:'안개 산맥', vocab:['씻다','옳다','끊다','씻다','맞다','빗다','끓다'] },
-  { name:'마지막 성', vocab:['찾다','벗다','입다','찾다','엮다','꺾다'] },
+  { name:'어둠의 숲', vocab:[
+    { text: '싫다', accept: ['싫다', '실타'] },
+    { text: '많다', accept: ['많다', '만타'] },
+    { text: '달다', accept: ['달다'] },
+    { text: '볶다', accept: ['볶다', '복따'] },
+    { text: '먹다', accept: ['먹다', '먹따'] },
+    { text: '걸다', accept: ['걸다'] },
+    { text: '닿다', accept: ['닿다', '다타', '닫따', '닫아', '다아'] } // 스크린샷 반영
+  ]},
+  { name:'침묵의 강', vocab:[
+    { text: '넓다', accept: ['넓다', '널따'] },
+    { text: '맑다', accept: ['맑다', '막따'] },
+    { text: '걷다', accept: ['걷다', '걷따'] },
+    { text: '앉다', accept: ['앉다', '안따'] },
+    { text: '잊다', accept: ['잊다', '잇따', '읻따'] },
+    { text: '좋다', accept: ['좋다', '조타'] },
+    { text: '익다', accept: ['익다', '익따'] }
+  ]},
+  { name:'안개 산맥', vocab:[
+    { text: '씻다', accept: ['씻다', '씨따', '싣따'] },
+    { text: '옳다', accept: ['옳다', '올타'] },
+    { text: '끊다', accept: ['끊다', '끈타'] },
+    { text: '맞다', accept: ['맞다', '마따', '맏따'] },
+    { text: '빗다', accept: ['빗다', '비따', '빋따'] },
+    { text: '끓다', accept: ['끓다', '끌타'] },
+    { text: '밝다', accept: ['밝다', '박따'] }
+  ]},
+  { name:'마지막 성', vocab:[
+    { text: '찾다', accept: ['찾다', '차따', '찯따'] },
+    { text: '벗다', accept: ['벗다', '버따', '벋따'] },
+    { text: '입다', accept: ['입다', '입따'] },
+    { text: '엮다', accept: ['엮다', '역따'] },
+    { text: '꺾다', accept: ['꺾다', '꺽따'] },
+    { text: '닦다', accept: ['닦다', '닥따'] }
+  ]},
 ];
 
 let state = { 
@@ -189,7 +221,7 @@ let state = {
 const $ = id => document.getElementById(id);
 
 function selectChar(btn) { 
-  AudioSys.init(); // 오디오 초기화용
+  AudioSys.init(); 
   document.querySelectorAll('.char-btn').forEach(b=>b.classList.remove('selected')); 
   btn.classList.add('selected'); 
   state.selectedChar=btn.dataset.char; 
@@ -257,17 +289,13 @@ function renderLoop() {
   ctx.clearRect(0, 0, W, H);
   drawBackground(W, H, state.stageIdx);
 
-  // 1. 플레이어 물리
   if (state.isJumping || state.jumpY > 0) {
     state.jumpY += state.jumpVY; state.jumpVY -= 1.0; 
     if (state.jumpY <= 0) { state.jumpY = 0; state.isJumping = false; }
   }
 
-  // 2. 보스 공격 신호 로직 (HP에 반비례하여 동적 속도 증가)
   if (state.hp > 0 && state.bossHP > 0) {
     const diff = now - state.bossSignalTimer;
-    
-    // speedMod: 체력이 100%일 때 1.0 (기본 속도), 체력이 0에 가까울수록 0.4 (2.5배 빠름)
     const speedMod = 0.4 + 0.6 * (state.bossHP / state.bossMaxHP);
     const phaseTime = 1000 * speedMod;
 
@@ -277,26 +305,23 @@ function renderLoop() {
     else if (state.bossSignal === 'red' && diff > phaseTime * 3) state.bossSignal = 'wait';
     else if (state.bossSignal === 'wait' && diff > phaseTime * 4) {
         state.bossAttacks.push({ x: W * 0.8, y: groundY - 40, vx: -(W * 0.015) });
-        AudioSys.play('bossAtk'); // 호랑이 불덩이 효과음
+        AudioSys.play('bossAtk');
         state.bossSignal = 'none'; 
-        // 다음 공격까지의 쿨타임도 체력에 비례하여 짧아짐
         state.bossSignalTimer = now + (1500 * speedMod);
     }
   }
 
-  // 3. 보스 투사체 & 충돌
   for (let i = state.bossAttacks.length - 1; i >= 0; i--) {
     let atk = state.bossAttacks[i]; atk.x += atk.vx;
     ctx.font = '40px serif'; ctx.fillText('🔥', atk.x, atk.y);
     if (atk.x > W*0.2-30 && atk.x < W*0.2+30 && (groundY - state.jumpY) > atk.y - 20) {
       state.hp--; updateUI(); state.bossAttacks.splice(i, 1);
-      AudioSys.play('hit'); // 플레이어 피격 효과음
+      AudioSys.play('hit'); 
       $('screen-game').classList.add('shake'); setTimeout(() => $('screen-game').classList.remove('shake'), 400);
       if (state.hp <= 0) { alert("패배했습니다!"); location.reload(); }
     } else if (atk.x < -50) state.bossAttacks.splice(i, 1);
   }
 
-  // 4. 캐릭터 & 보스 은은한 아우라 그리기
   drawChar(IMG[state.selectedChar], W * 0.2, groundY - state.jumpY, 110, false, now);
 
   const bossX = W * 0.8, bossY = groundY;
@@ -326,14 +351,13 @@ function renderLoop() {
   drawChar(IMG.tiger, bossX, bossY, 150, true, now);
   ctx.restore();
 
-  // 5. 내 공격 투사체 (보스에게 날아가기)
   state.particles = state.particles.filter(p => p.life > 0);
   state.particles.forEach(p => {
     p.x += p.vx; p.y += p.vy;
     if (p.x > W * 0.75 && !p.hit) {
         p.hit = true; p.life = 0;
         state.bossHitEffect = 15; 
-        AudioSys.play('bossHit'); // 보스 피격 효과음
+        AudioSys.play('bossHit'); 
     }
     ctx.font = p.size + 'px serif'; ctx.fillText(p.emoji, p.x, p.y);
   });
@@ -353,7 +377,8 @@ function drawChar(img, cx, gy, size, flip, t) {
 function loadNextWord() {
   const s = STAGES[state.stageIdx];
   if (state.bossHP <= 0) return;
-  $('vocab-word').textContent = s.vocab[state.vocabIdx];
+  // 💡 화면에는 원본 단어(.text)를 보여줍니다.
+  $('vocab-word').textContent = s.vocab[state.vocabIdx].text;
   $('vocab-feedback').textContent = '신호를 보고 피하며 읽으세요!';
   $('vocab-feedback').style.color = '#fff';
 }
@@ -375,15 +400,20 @@ function toggleListening() {
   
   rec.onresult = e => {
     state.listening = false; btn.classList.remove('listening'); btn.innerHTML = '🎤 공격!';
-    const heard = e.results[0][0].transcript.replace(/\s/g,'');
-    const target = STAGES[state.stageIdx].vocab[state.vocabIdx].replace(/\s/g,'');
     
-    if (heard.includes(target) || target.includes(heard)) {
+    // 인식된 음성에서 공백 제거
+    const heard = e.results[0][0].transcript.replace(/\s/g,'');
+    
+    // 💡 현재 단어의 허용 발음 배열을 가져와서 정답 확인
+    const targetData = STAGES[state.stageIdx].vocab[state.vocabIdx];
+    const isCorrect = targetData.accept.some(ans => heard === ans || heard.includes(ans));
+    
+    if (isCorrect) {
       state.vocabIdx++;
       state.bossHP--; 
       updateUI(); 
       
-      AudioSys.play('playerAtk'); // 내 공격 성공 효과음
+      AudioSys.play('playerAtk'); 
       spawnAttack();
       $('vocab-feedback').textContent = '⚡ 명중!'; $('vocab-feedback').style.color = '#00ffff';
       
@@ -400,7 +430,6 @@ function toggleListening() {
   rec.start();
 }
 
-// 투사체 이모지 동적 변경 (토끼 = 번개⚡, 사슴 = 바람💨)
 function spawnAttack() {
   const attackEmoji = state.selectedChar === 'rabbit' ? '⚡' : '💨';
   for(let i=0; i<5; i++) {
