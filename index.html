@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>⚔️ 점프 & 보이스 배틀 프로</title>
+<title>⚔️ 점프 & 보이스 배틀 프로 (커스텀 단어장)</title>
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -12,13 +12,29 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
 .screen.active { display:flex; }
 
 /* 시작 화면 */
-#screen-start { background:linear-gradient(160deg,#1a0d2b,#2b1a3a 50%,#0d0d1a); gap:24px; padding:32px 24px; }
+#screen-start { background:linear-gradient(160deg,#1a0d2b,#2b1a3a 50%,#0d0d1a); gap:20px; padding:32px 24px; }
 .title-main { font-size:42px; color:#fff; text-shadow:0 4px 20px rgba(138,43,226,0.6); text-align:center; }
 .char-select { display:flex; gap:20px; justify-content:center; width:100%; }
 .char-btn { background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.2); border-radius:20px; padding:16px 20px; cursor:pointer; text-align:center; transition:all 0.2s; flex:1; max-width:140px; }
 .char-btn.selected { background:rgba(0,255,255,0.1); border-color:#00ffff; transform:scale(1.05); }
 .char-btn img { width:90px; height:90px; object-fit:contain; }
-.start-btn { background:linear-gradient(135deg,#6a11cb,#2575fc); border:none; border-radius:50px; padding:18px 56px; font-family:'Jua',sans-serif; font-size:26px; color:#fff; cursor:pointer; }
+.btn-group { display:flex; gap:10px; flex-direction:column; width:100%; max-width:300px; margin-top: 10px; }
+.start-btn { background:linear-gradient(135deg,#6a11cb,#2575fc); border:none; border-radius:50px; padding:18px 20px; font-family:'Jua',sans-serif; font-size:26px; color:#fff; cursor:pointer; box-shadow:0 6px 20px rgba(106,17,203,0.4); }
+.vocab-btn { background:linear-gradient(135deg,#ff758c,#ff7eb3); border:none; border-radius:50px; padding:15px 20px; font-family:'Jua',sans-serif; font-size:20px; color:#fff; cursor:pointer; box-shadow:0 4px 15px rgba(255,117,140,0.4); }
+
+/* 단어장 설정 화면 */
+#screen-vocab { background:#1a1a2e; padding:20px; justify-content:flex-start; }
+.vocab-header { width:100%; max-width:500px; display:flex; justify-content:space-between; align-items:center; color:#fff; padding-bottom:15px; border-bottom:2px solid rgba(255,255,255,0.1); margin-bottom:15px; margin-top:20px;}
+.vocab-header h2 { font-size:28px; color:#00ffff; }
+.back-btn { background:rgba(255,255,255,0.2); color:#fff; border:none; padding:8px 16px; border-radius:8px; font-family:'Jua',sans-serif; font-size:16px; cursor:pointer; }
+.vocab-add-form { width:100%; max-width:500px; background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; display:flex; flex-direction:column; gap:10px; margin-bottom:15px; }
+.vocab-add-form input { padding:10px 15px; border-radius:8px; border:none; font-family:'Jua',sans-serif; font-size:16px; outline:none; }
+.vocab-add-btn { background:#00ffff; color:#000; border:none; padding:10px; border-radius:8px; font-family:'Jua',sans-serif; font-size:18px; cursor:pointer; font-weight:bold; }
+.vocab-list-container { width:100%; max-width:500px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-bottom:20px; }
+.vocab-item { background:rgba(0,0,0,0.4); padding:12px 15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; color:#fff; border-left:4px solid #00ffff; }
+.vocab-item-text { font-size:20px; display:flex; flex-direction:column; gap:4px; }
+.vocab-item-accept { font-size:13px; color:rgba(255,255,255,0.6); }
+.delete-btn { background:#ff4444; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-family:'Jua',sans-serif; font-size:14px; cursor:pointer; }
 
 /* 게임 화면 UI */
 #screen-game { background:#000; padding:0; justify-content:flex-start; }
@@ -31,8 +47,6 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
 .hp-display { display:flex; gap:2px; }
 .hp-heart { font-size:20px; transition:all 0.3s; }
 .hp-heart.empty { filter:grayscale(1) opacity(0.3); }
-
-/* 일시정지 버튼 */
 .pause-btn { background:rgba(255,255,255,0.2); border:none; border-radius:10px; color:#fff; padding:5px 12px; font-size:18px; cursor:pointer; }
 
 #game-canvas { width:100%; flex:1; display:block; z-index: 10; }
@@ -47,7 +61,7 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
 .mic-btn.listening { background:linear-gradient(135deg,#ff0080,#ff8c00); animation: pulse 1.2s infinite; }
 .jump-btn { background:linear-gradient(135deg,#00b09b,#96c93d); }
 
-/* 일시정지 메뉴 팝업 */
+/* 메뉴 팝업 */
 #screen-pause { background:rgba(0,0,0,0.85); z-index: 100; display: none; }
 #screen-pause.active { display: flex; }
 .menu-box { background:#2a2a4a; border:4px solid #fff; border-radius:30px; padding:40px; text-align:center; display:flex; flex-direction:column; gap:20px; }
@@ -75,7 +89,24 @@ body { font-family:'Jua',sans-serif; background:#1a1a2e; overflow:hidden; width:
       <div class="char-name">바람 사슴</div>
     </div>
   </div>
-  <button class="start-btn" onclick="startGame()">배틀 시작! ⚔️</button>
+  <div class="btn-group">
+    <button class="start-btn" onclick="startGame()">배틀 시작! ⚔️</button>
+    <button class="vocab-btn" onclick="openVocabScreen()">📖 단어장 관리</button>
+  </div>
+</div>
+
+<div id="screen-vocab" class="screen">
+  <div class="vocab-header">
+    <h2>📖 커스텀 단어장</h2>
+    <button class="back-btn" onclick="showScreen('screen-start')">홈으로</button>
+  </div>
+  <div class="vocab-add-form">
+    <input type="text" id="new-word-text" placeholder="새 단어 (예: 하늘)">
+    <input type="text" id="new-word-accept" placeholder="허용 발음 쉼표 구분 (예: 하늘, 하눌)">
+    <button class="vocab-add-btn" onclick="addVocabWord()">+ 목록에 추가</button>
+  </div>
+  <div class="vocab-list-container" id="vocab-list">
+    </div>
 </div>
 
 <div id="screen-game" class="screen">
@@ -126,38 +157,24 @@ const AudioSys = {
   },
   play(type) {
     if(!this.ctx) return;
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    const t = this.ctx.currentTime, osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
     osc.connect(gain); gain.connect(this.ctx.destination);
     
     if (type === 'playerAtk') { 
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(800, t);
-      osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
-      gain.gain.setValueAtTime(0.1, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+      osc.type = 'square'; osc.frequency.setValueAtTime(800, t); osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+      gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
       osc.start(t); osc.stop(t + 0.15);
     } else if (type === 'bossAtk') { 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(250, t);
-      osc.frequency.exponentialRampToValueAtTime(40, t + 0.3);
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.linearRampToValueAtTime(0.01, t + 0.3);
+      osc.type = 'sine'; osc.frequency.setValueAtTime(250, t); osc.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+      gain.gain.setValueAtTime(0.3, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.3);
       osc.start(t); osc.stop(t + 0.3);
     } else if (type === 'hit') { 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(150, t);
-      osc.frequency.linearRampToValueAtTime(50, t + 0.2);
-      gain.gain.setValueAtTime(0.2, t);
-      gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, t); osc.frequency.linearRampToValueAtTime(50, t + 0.2);
+      gain.gain.setValueAtTime(0.2, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
       osc.start(t); osc.stop(t + 0.2);
     } else if (type === 'bossHit') { 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(400, t);
-      osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.linearRampToValueAtTime(0.01, t + 0.15);
+      osc.type = 'triangle'; osc.frequency.setValueAtTime(400, t); osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+      gain.gain.setValueAtTime(0.3, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.15);
       osc.start(t); osc.stop(t + 0.15);
     }
   }
@@ -165,57 +182,116 @@ const AudioSys = {
 
 const GITHUB_URL = "https://raw.githubusercontent.com/garlihak/garlihak/main/";
 const SRC = { rabbit: GITHUB_URL + "rabbit.png", deer: GITHUB_URL + "deer.png", tiger: GITHUB_URL + "tiger.png" };
-const IMG = {};
-Object.entries(SRC).forEach(([k, v]) => { const i = new Image(); i.src = v; IMG[k] = i; });
+const IMG = {}; Object.entries(SRC).forEach(([k, v]) => { const i = new Image(); i.src = v; IMG[k] = i; });
 
 document.getElementById('prev-rabbit').src = SRC.rabbit;
 document.getElementById('prev-deer').src = SRC.deer;
 
-const STAGES = [
-  { name:'어둠의 숲', vocab:[
-    { text: '싫다', accept: ['싫다', '실타'] },
-    { text: '많다', accept: ['많다', '만타'] },
-    { text: '달다', accept: ['달다'] },
-    { text: '볶다', accept: ['볶다', '복따'] },
-    { text: '먹다', accept: ['먹다', '먹따'] },
-    { text: '걸다', accept: ['걸다'] },
-    { text: '닿다', accept: ['닿다', '다타', '닫따', '닫아', '다아'] } 
-  ]},
-  { name:'침묵의 강', vocab:[
-    { text: '넓다', accept: ['넓다', '널따'] },
-    { text: '맑다', accept: ['맑다', '막따'] },
-    { text: '걷다', accept: ['걷다', '걷따'] },
-    { text: '앉다', accept: ['앉다', '안따'] },
-    { text: '잊다', accept: ['잊다', '잇따', '있다', '읻따', '이따'] },
-    { text: '좋다', accept: ['좋다', '조타'] },
-    { text: '익다', accept: ['익다', '익따'] }
-  ]},
-  { name:'안개 산맥', vocab:[
-    { text: '씻다', accept: ['씻다', '씨따', '싣따'] },
-    { text: '옳다', accept: ['옳다', '올타'] },
-    { text: '끊다', accept: ['끊다', '끈타'] },
-    { text: '맞다', accept: ['맞다', '마따', '맏따'] },
-    { text: '빗다', accept: ['빗다', '비따', '빋따'] },
-    { text: '끓다', accept: ['끓다', '끌타'] },
-    { text: '밝다', accept: ['밝다', '박따'] }
-  ]},
-  { name:'마지막 성', vocab:[
-    { text: '찾다', accept: ['찾다', '차따', '찯따'] },
-    { text: '벗다', accept: ['벗다', '버따', '벋따'] },
-    { text: '입다', accept: ['입다', '입따'] },
-    { text: '엮다', accept: ['엮다', '역따'] },
-    { text: '꺾다', accept: ['꺾다', '꺽따'] },
-    { text: '닦다', accept: ['닦다', '닥따'] }
-  ]},
+// --- 💡 단어장 시스템 ---
+const DEFAULT_VOCAB = [
+  { text: '싫다', accept: ['싫다', '실타'] }, { text: '많다', accept: ['많다', '만타'] }, { text: '달다', accept: ['달다'] }, { text: '볶다', accept: ['볶다', '복따'] }, { text: '먹다', accept: ['먹다', '먹따'] }, { text: '걸다', accept: ['걸다'] }, { text: '닿다', accept: ['닿다', '다타', '닫따', '닫아', '다아'] },
+  { text: '넓다', accept: ['넓다', '널따'] }, { text: '맑다', accept: ['맑다', '막따'] }, { text: '걷다', accept: ['걷다', '걷따'] }, { text: '앉다', accept: ['앉다', '안따'] }, { text: '잊다', accept: ['잊다', '잇따', '있다', '읻따', '이따'] }, { text: '좋다', accept: ['좋다', '조타'] }, { text: '익다', accept: ['익다', '익따'] },
+  { text: '씻다', accept: ['씻다', '씨따', '싣따'] }, { text: '옳다', accept: ['옳다', '올타'] }, { text: '끊다', accept: ['끊다', '끈타'] }, { text: '맞다', accept: ['맞다', '마따', '맏따'] }, { text: '빗다', accept: ['빗다', '비따', '빋따'] }, { text: '끓다', accept: ['끓다', '끌타'] }, { text: '밝다', accept: ['밝다', '박따'] },
+  { text: '찾다', accept: ['찾다', '차따', '찯따'] }, { text: '벗다', accept: ['벗다', '버따', '벋따'] }, { text: '입다', accept: ['입다', '입따'] }, { text: '엮다', accept: ['엮다', '역따'] }, { text: '꺾다', accept: ['꺾다', '꺽따'] }, { text: '닦다', accept: ['닦다', '닥따'] }
 ];
 
-// failCount 변수 추가 (단어별 실패 횟수 기록)
+let masterVocab = [];
+// 로컬 스토리지에서 단어장 불러오기
+try {
+  const saved = localStorage.getItem('customVocab');
+  if (saved) masterVocab = JSON.parse(saved);
+  else masterVocab = [...DEFAULT_VOCAB];
+} catch(e) { masterVocab = [...DEFAULT_VOCAB]; }
+
+function saveVocab() { localStorage.setItem('customVocab', JSON.parse(JSON.stringify(masterVocab))); }
+
+function openVocabScreen() { renderVocabList(); showScreen('screen-vocab'); }
+
+function renderVocabList() {
+  const container = $('vocab-list');
+  container.innerHTML = '';
+  masterVocab.forEach((v, index) => {
+    const el = document.createElement('div'); el.className = 'vocab-item';
+    el.innerHTML = `
+      <div class="vocab-item-text">
+        <span>${v.text}</span>
+        <span class="vocab-item-accept">허용: ${v.accept.join(', ')}</span>
+      </div>
+      <button class="delete-btn" onclick="deleteVocabWord(${index})">삭제</button>
+    `;
+    container.appendChild(el);
+  });
+  $('vocab-header-title')
+}
+
+function addVocabWord() {
+  const wordInput = $('new-word-text'); const acceptInput = $('new-word-accept');
+  const word = wordInput.value.trim();
+  if(!word) { alert("단어를 입력해주세요."); return; }
+  
+  // 쉼표로 구분하여 배열 생성, 공백 제거
+  let accepts = acceptInput.value.split(',').map(s => s.trim()).filter(s => s);
+  if(accepts.length === 0) accepts = [word]; // 허용 발음이 빈칸이면 원래 단어만 허용
+  else if(!accepts.includes(word)) accepts.unshift(word); // 원본 단어도 허용 리스트에 무조건 포함
+  
+  masterVocab.push({ text: word, accept: accepts });
+  saveVocab(); renderVocabList();
+  wordInput.value = ''; acceptInput.value = '';
+}
+
+function deleteVocabWord(index) {
+  if(confirm(`'${masterVocab[index].text}' 단어를 삭제하시겠습니까?`)) {
+    masterVocab.splice(index, 1);
+    saveVocab(); renderVocabList();
+  }
+}
+
+// --- 💡 동적 스테이지 생성 시스템 ---
+let ACTIVE_STAGES = [];
+const BASE_THEMES = [
+  { name: '어둠의 숲', colors: ['#0a192f','#1e3c35'], ground: '#132a1e' },
+  { name: '침묵의 강', colors: ['#0f2027','#203a43'], ground: '#2c5364' },
+  { name: '안개 산맥', colors: ['#2b3240','#4f5d73'], ground: '#3a4454' },
+  { name: '마지막 성', colors: ['#1a0b1c','#4a154b'], ground: '#321029' }
+];
+
+function generateDynamicStages() {
+  if (masterVocab.length === 0) return false;
+  ACTIVE_STAGES = [];
+  
+  const totalWords = masterVocab.length;
+  // 스테이지당 최대 7개 기준 스테이지 수 계산 (ex: 30개 -> ceil(30/7) = 5개 스테이지)
+  const numStages = Math.ceil(totalWords / 7); 
+  // 최대한 균등하게 단어 분배 (30개 / 5스테이지 = 기본 6개, 남은건 앞쪽 스테이지부터 +1)
+  const baseCount = Math.floor(totalWords / numStages);
+  const remainder = totalWords % numStages;
+  
+  let currentIndex = 0;
+  for(let i=0; i<numStages; i++) {
+    const count = baseCount + (i < remainder ? 1 : 0);
+    const stageVocab = masterVocab.slice(currentIndex, currentIndex + count);
+    currentIndex += count;
+    
+    // 테마 설정 (4개까지는 기본 테마, 5개부터는 랜덤 HSL 테마 생성)
+    let theme = BASE_THEMES[i];
+    if (!theme) {
+      const hue = Math.floor(Math.random() * 360);
+      theme = {
+        name: `미지의 구역 ${i+1}`,
+        colors: [`hsl(${hue}, 40%, 15%)`, `hsl(${hue}, 40%, 25%)`],
+        ground: `hsl(${hue}, 30%, 20%)`
+      };
+    }
+    ACTIVE_STAGES.push({ theme: theme, vocab: stageVocab });
+  }
+  return true;
+}
+
+// --- 게임 상태 관리 ---
 let state = { 
   selectedChar:'rabbit', stageIdx:0, vocabIdx:0, failCount:0, hp:5, maxHp:5, 
-  bossHP:0, bossMaxHP:0, isPaused: false,
-  jumpY: 0, jumpVY: 0, isJumping: false,
-  bossAttacks: [], bossSignal: 'none', bossSignalTimer: 0,
-  particles:[], listening:false, recognition:null, animFrame:null
+  bossHP:0, bossMaxHP:0, isPaused: false, jumpY: 0, jumpVY: 0, isJumping: false,
+  bossAttacks: [], bossSignal: 'none', bossSignalTimer: 0, particles:[], listening:false, recognition:null, animFrame:null
 };
 
 const $ = id => document.getElementById(id);
@@ -223,22 +299,22 @@ const $ = id => document.getElementById(id);
 function selectChar(btn) { 
   AudioSys.init(); 
   document.querySelectorAll('.char-btn').forEach(b=>b.classList.remove('selected')); 
-  btn.classList.add('selected'); 
-  state.selectedChar=btn.dataset.char; 
+  btn.classList.add('selected'); state.selectedChar=btn.dataset.char; 
 }
 
 function startGame() {
+  if(!generateDynamicStages()) { alert("단어장이 비어있습니다. 단어를 먼저 추가해주세요!"); return; }
   AudioSys.init();
   state.stageIdx = 0; state.hp = 5; state.isPaused = false;
   loadStage(); showScreen('screen-game'); renderLoop();
 }
 
 function loadStage() {
-  const s = STAGES[state.stageIdx];
-  state.vocabIdx = 0; state.failCount = 0; // 스테이지 시작 시 초기화
-  state.bossMaxHP = s.vocab.length; state.bossHP = s.vocab.length;
+  const currentStage = ACTIVE_STAGES[state.stageIdx];
+  state.vocabIdx = 0; state.failCount = 0; 
+  state.bossMaxHP = currentStage.vocab.length; state.bossHP = currentStage.vocab.length;
   state.bossAttacks = []; state.bossSignal = 'none'; state.bossSignalTimer = Date.now() + 2000;
-  $('boss-name').textContent = `${s.name}의 호랑이`;
+  $('boss-name').textContent = `${currentStage.theme.name}의 호랑이`;
   updateUI(); loadNextWord();
 }
 
@@ -247,8 +323,7 @@ function updateUI() {
   const hpDiv = $('hp-display'); hpDiv.innerHTML = '';
   for(let i=0; i<state.maxHp; i++) {
     const s = document.createElement('span');
-    s.className = 'hp-heart' + (i >= state.hp ? ' empty' : '');
-    s.textContent = '❤️'; hpDiv.appendChild(s);
+    s.className = 'hp-heart' + (i >= state.hp ? ' empty' : ''); s.textContent = '❤️'; hpDiv.appendChild(s);
   }
 }
 
@@ -257,9 +332,7 @@ function togglePause(paused) {
   if(paused) {
     $('screen-pause').classList.add('active');
     if(state.recognition) try { state.recognition.stop(); } catch(e) {}
-  } else {
-    $('screen-pause').classList.remove('active');
-  }
+  } else { $('screen-pause').classList.remove('active'); }
 }
 
 function jump() { 
@@ -269,26 +342,21 @@ function jump() {
 
 const canvas = $('game-canvas'), ctx = canvas.getContext('2d');
 function initCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 150; }
-window.addEventListener('resize', initCanvas);
-initCanvas();
+window.addEventListener('resize', initCanvas); initCanvas();
 
 function drawBackground(W, H, stageIdx) {
+  const theme = ACTIVE_STAGES[stageIdx].theme;
   let skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-  const colors = [['#0a192f','#1e3c35'], ['#0f2027','#203a43'], ['#2b3240','#4f5d73'], ['#1a0b1c','#4a154b']];
-  skyGrad.addColorStop(0, colors[stageIdx][0]); skyGrad.addColorStop(1, colors[stageIdx][1]);
+  skyGrad.addColorStop(0, theme.colors[0]); skyGrad.addColorStop(1, theme.colors[1]);
   ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = stageIdx === 0 ? '#132a1e' : stageIdx === 1 ? '#2c5364' : stageIdx === 2 ? '#3a4454' : '#321029';
-  ctx.fillRect(0, H * 0.75, W, H * 0.25);
+  ctx.fillStyle = theme.ground; ctx.fillRect(0, H * 0.75, W, H * 0.25);
 }
 
 function renderLoop() {
   if (state.isPaused) { state.animFrame = requestAnimationFrame(renderLoop); return; }
   
-  const W = canvas.width, H = canvas.height, groundY = H * 0.75;
-  const now = Date.now();
-  
-  ctx.clearRect(0, 0, W, H);
-  drawBackground(W, H, state.stageIdx);
+  const W = canvas.width, H = canvas.height, groundY = H * 0.75, now = Date.now();
+  ctx.clearRect(0, 0, W, H); drawBackground(W, H, state.stageIdx);
 
   if (state.isJumping || state.jumpY > 0) {
     state.jumpY += state.jumpVY; state.jumpVY -= 1.0; 
@@ -306,9 +374,7 @@ function renderLoop() {
     else if (state.bossSignal === 'red' && diff > phaseTime * 3) state.bossSignal = 'wait';
     else if (state.bossSignal === 'wait' && diff > phaseTime * 4) {
         state.bossAttacks.push({ x: W * 0.8, y: groundY - 40, vx: -(W * 0.015) });
-        AudioSys.play('bossAtk');
-        state.bossSignal = 'none'; 
-        state.bossSignalTimer = now + (1500 * speedMod);
+        AudioSys.play('bossAtk'); state.bossSignal = 'none'; state.bossSignalTimer = now + (1500 * speedMod);
     }
   }
 
@@ -316,32 +382,25 @@ function renderLoop() {
     let atk = state.bossAttacks[i]; atk.x += atk.vx;
     ctx.font = '40px serif'; ctx.fillText('🔥', atk.x, atk.y);
     if (atk.x > W*0.2-30 && atk.x < W*0.2+30 && (groundY - state.jumpY) > atk.y - 20) {
-      state.hp--; updateUI(); state.bossAttacks.splice(i, 1);
-      AudioSys.play('hit'); 
+      state.hp--; updateUI(); state.bossAttacks.splice(i, 1); AudioSys.play('hit'); 
       $('screen-game').classList.add('shake'); setTimeout(() => $('screen-game').classList.remove('shake'), 400);
       if (state.hp <= 0) { alert("패배했습니다!"); location.reload(); }
     } else if (atk.x < -50) state.bossAttacks.splice(i, 1);
   }
 
-  // 💡 수정됨: 캐릭터 크기를 140으로 확대
   drawChar(IMG[state.selectedChar], W * 0.2, groundY - state.jumpY, 140, false, now);
 
   const bossX = W * 0.8, bossY = groundY;
   
   if (state.bossSignal !== 'none' && state.bossSignal !== 'wait') {
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen'; 
-    const pulseRadius = 140 + Math.sin(now * 0.005) * 20; // 💡 아우라 반경도 함께 키움
-    const auraGrad = ctx.createRadialGradient(bossX, bossY - 80, 20, bossX, bossY - 80, pulseRadius); // 💡 중심점을 위로 올림 (-80)
+    ctx.save(); ctx.globalCompositeOperation = 'screen'; 
+    const pulseRadius = 140 + Math.sin(now * 0.005) * 20; 
+    const auraGrad = ctx.createRadialGradient(bossX, bossY - 80, 20, bossX, bossY - 80, pulseRadius); 
     
     let coreColor, outerColor;
-    if (state.bossSignal === 'green') {
-        coreColor = 'rgba(50, 255, 100, 0.6)'; outerColor = 'rgba(50, 255, 100, 0)';
-    } else if (state.bossSignal === 'yellow') {
-        coreColor = 'rgba(255, 200, 50, 0.6)'; outerColor = 'rgba(255, 200, 50, 0)';
-    } else {
-        coreColor = 'rgba(255, 50, 50, 0.8)'; outerColor = 'rgba(255, 50, 50, 0)';
-    }
+    if (state.bossSignal === 'green') { coreColor = 'rgba(50, 255, 100, 0.6)'; outerColor = 'rgba(50, 255, 100, 0)'; } 
+    else if (state.bossSignal === 'yellow') { coreColor = 'rgba(255, 200, 50, 0.6)'; outerColor = 'rgba(255, 200, 50, 0)'; } 
+    else { coreColor = 'rgba(255, 50, 50, 0.8)'; outerColor = 'rgba(255, 50, 50, 0)'; }
     
     auraGrad.addColorStop(0, coreColor); auraGrad.addColorStop(1, outerColor);
     ctx.fillStyle = auraGrad; ctx.beginPath(); ctx.arc(bossX, bossY - 80, pulseRadius, 0, Math.PI * 2); ctx.fill();
@@ -350,18 +409,13 @@ function renderLoop() {
   
   ctx.save();
   if (state.bossHitEffect > 0) { ctx.translate((Math.random()-0.5)*15, 0); state.bossHitEffect--; }
-  // 💡 수정됨: 보스 크기를 190으로 확대
   drawChar(IMG.tiger, bossX, bossY, 190, true, now);
   ctx.restore();
 
   state.particles = state.particles.filter(p => p.life > 0);
   state.particles.forEach(p => {
     p.x += p.vx; p.y += p.vy;
-    if (p.x > W * 0.75 && !p.hit) {
-        p.hit = true; p.life = 0;
-        state.bossHitEffect = 15; 
-        AudioSys.play('bossHit'); 
-    }
+    if (p.x > W * 0.75 && !p.hit) { p.hit = true; p.life = 0; state.bossHitEffect = 15; AudioSys.play('bossHit'); }
     ctx.font = p.size + 'px serif'; ctx.fillText(p.emoji, p.x, p.y);
   });
 
@@ -378,11 +432,9 @@ function drawChar(img, cx, gy, size, flip, t) {
 }
 
 function loadNextWord() {
-  const s = STAGES[state.stageIdx];
+  const s = ACTIVE_STAGES[state.stageIdx];
   if (state.bossHP <= 0) return;
-  
-  state.failCount = 0; // 💡 새로운 단어가 로드될 때 실패 횟수 초기화
-  
+  state.failCount = 0; 
   $('vocab-word').textContent = s.vocab[state.vocabIdx].text;
   $('vocab-feedback').textContent = '신호를 보고 피하며 읽으세요!';
   $('vocab-feedback').style.color = '#fff';
@@ -390,8 +442,7 @@ function loadNextWord() {
 
 function toggleListening() {
   AudioSys.init();
-  const btn = $('mic-btn');
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const btn = $('mic-btn'), SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
 
   if (state.listening) {
@@ -407,46 +458,24 @@ function toggleListening() {
     state.listening = false; btn.classList.remove('listening'); btn.innerHTML = '🎤 공격!';
     
     const heard = e.results[0][0].transcript.replace(/\s/g,'');
-    const targetData = STAGES[state.stageIdx].vocab[state.vocabIdx];
+    const targetData = ACTIVE_STAGES[state.stageIdx].vocab[state.vocabIdx];
     const isCorrect = targetData.accept.some(ans => heard === ans || heard.includes(ans));
     
     if (isCorrect) {
-      state.vocabIdx++;
-      state.bossHP--; 
-      updateUI(); 
-      
-      AudioSys.play('playerAtk'); 
-      spawnAttack();
+      state.vocabIdx++; state.bossHP--; updateUI(); 
+      AudioSys.play('playerAtk'); spawnAttack();
       $('vocab-feedback').textContent = '⚡ 명중!'; $('vocab-feedback').style.color = '#00ffff';
       
-      if (state.bossHP <= 0) {
-        setTimeout(showCheckpoint, 800); 
-      } else {
-        setTimeout(loadNextWord, 800);
-      }
+      if (state.bossHP <= 0) setTimeout(showCheckpoint, 800); else setTimeout(loadNextWord, 800);
     } else {
-      // 💡 3번 실패 시 자동 통과 로직 추가
       state.failCount++;
-      
       if (state.failCount >= 3) {
-        state.vocabIdx++;
-        state.bossHP--; 
-        updateUI(); 
-        
-        AudioSys.play('playerAtk'); 
-        spawnAttack();
-        $('vocab-feedback').textContent = '✨ 자동 통과! (어려운 발음)'; 
-        $('vocab-feedback').style.color = '#00ffff'; // 통과 메시지는 눈에 띄는 색으로
-        
-        if (state.bossHP <= 0) {
-          setTimeout(showCheckpoint, 800); 
-        } else {
-          setTimeout(loadNextWord, 800);
-        }
+        state.vocabIdx++; state.bossHP--; updateUI(); 
+        AudioSys.play('playerAtk'); spawnAttack();
+        $('vocab-feedback').textContent = '✨ 자동 통과! (어려운 발음)'; $('vocab-feedback').style.color = '#00ffff'; 
+        if (state.bossHP <= 0) setTimeout(showCheckpoint, 800); else setTimeout(loadNextWord, 800);
       } else {
-        // 실패 시 남은 기회(카운트) 표시
-        $('vocab-feedback').textContent = `❌ 다시! (${heard}) [${state.failCount}/3]`; 
-        $('vocab-feedback').style.color = '#ffaa00';
+        $('vocab-feedback').textContent = `❌ 다시! (${heard}) [${state.failCount}/3]`; $('vocab-feedback').style.color = '#ffaa00';
       }
     }
   };
@@ -466,14 +495,13 @@ function spawnAttack() {
 }
 
 function showCheckpoint() {
-  state.bossAttacks = [];
-  $('checkpoint-popup').classList.add('show');
+  state.bossAttacks = []; $('checkpoint-popup').classList.add('show');
 }
 
 function nextStage() {
   $('checkpoint-popup').classList.remove('show');
   state.stageIdx++;
-  if(state.stageIdx >= STAGES.length) { alert("승리했습니다!"); location.reload(); }
+  if(state.stageIdx >= ACTIVE_STAGES.length) { alert("승리했습니다!"); location.reload(); }
   else { state.hp = 5; loadStage(); }
 }
 
